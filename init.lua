@@ -45,24 +45,8 @@ vim.g.maplocalleader = " "
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
--- everforest theme
 -- set termguicolors to enable highlight groups
 vim.opt.termguicolors = true
-
-local function nvim_tree_on_attach(bufnr)
-  local api = require("nvim-tree.api")
-
-  local function opts(desc)
-    return { desc = "nvim-tree: " .. desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
-  end
-
-  -- default mappings
-  api.config.mappings.default_on_attach(bufnr)
-
-  -- custom mappings
-  vim.keymap.set("n", "<C-t>", api.tree.change_root_to_parent, opts("Up"))
-  vim.keymap.set("n", "?", api.tree.toggle_help, opts("Help"))
-end
 
 -- Install package manager
 --    https://github.com/folke/lazy.nvim
@@ -87,6 +71,32 @@ vim.opt.rtp:prepend(lazypath)
 --    as they will be available in your neovim runtime.
 require("lazy").setup({
   -- NOTE: First, some plugins that don't require any configuration
+  --   {
+  --     "folke/tokyonight.nvim",
+  --     priority = 1000,
+  --
+  --     opts = {
+  --       style = "storm",
+  --       transparent = false,
+  --       styles = {
+  --         comments = { italic = true },
+  --         keywords = { italic = false },
+  --         functions = { bold = true }
+  --       },
+  --       on_colors = function(colors)
+  --         colors.border = "#3b4261" -- 修改边框颜色
+  --       end
+  --     },
+  --
+  --     config = function(_, opts)
+  --       require("tokyonight").setup(opts)
+  --       vim.cmd.colorscheme("tokyonight-storm")
+  --
+  --       -- 透明终端适配（如果需要）
+  --       vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
+  --       vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
+  --     end
+  --   },
 
   -- Git related plugins
   "tpope/vim-fugitive",
@@ -94,50 +104,6 @@ require("lazy").setup({
 
   -- Detect tabstop and shiftwidth automatically
   "tpope/vim-sleuth",
-
-  {
-    "folke/flash.nvim",
-    event = "VeryLazy",
-    ---@type Flash.Config
-    opts = {},
-    -- stylua: ignore
-    keys = {
-      { "s", mode = { "n", "o", "x" }, function() require("flash").jump() end,       desc = "Flash" },
-      { "S", mode = { "n", "o", "x" }, function() require("flash").treesitter() end, desc = "Flash Treesitter" },
-      { "r", mode = "o",               function() require("flash").remote() end,     desc = "Remote Flash" },
-      {
-        "R",
-        mode = { "o", "x" },
-        function() require("flash").treesitter_search() end,
-        desc =
-        "Treesitter Search"
-      },
-      {
-        "<c-s>",
-        mode = { "c" },
-        function() require("flash").toggle() end,
-        desc =
-        "Toggle Flash Search"
-      },
-    },
-  },
-  "github/copilot.vim",
-  {
-    "windwp/nvim-autopairs",
-    event = "InsertEnter",
-    opts = {},
-  },
-
-  {
-
-    "sainnhe/everforest",
-    --"kaicataldo/material.vim",
-    priority = 2000,
-    config = function()
-      vim.cmd.colorscheme("everforest")
-      vim.cmd([[set background=dark]])
-    end,
-  },
 
   {
     "ray-x/go.nvim",
@@ -150,8 +116,8 @@ require("lazy").setup({
       require("go").setup()
     end,
     event = { "CmdlineEnter" },
-    ft = { "go", 'gomod' },
-    build = ':lua require("go.install").update_all_sync()' -- if you need to install/update all binaries
+    ft = { "go", "gomod" },
+    build = ':lua require("go.install").update_all_sync()', -- if you need to install/update all binaries
   },
 
   -- NOTE: This is where your plugins related to LSP can be installed.
@@ -183,11 +149,11 @@ require("lazy").setup({
     dependencies = {
       "nvim-tree/nvim-web-devicons",
     },
+    keys = {
+      { "<leader>nt", "<cmd>NvimTreeToggle<CR>", desc = "Toggle file tree" },
+    },
     config = function()
-      require("nvim-tree").setup({
-        on_attach = nvim_tree_on_attach,
-      })
-      require("nvim-tree.api").tree.toggle({ find_file = true, focus = true })
+      require("nvim-tree").setup({})
     end,
   },
 
@@ -199,13 +165,13 @@ require("lazy").setup({
 
       null_ls.setup({
         sources = {
-          null_ls.builtins.diagnostics.pylint,
-          null_ls.builtins.diagnostics.cpplint,
-          null_ls.builtins.formatting.black,
-          null_ls.builtins.formatting.clang_format,
+          -- null_ls.builtins.diagnostics.pylint,
+          -- null_ls.builtins.diagnostics.cpplint,
+          -- null_ls.builtins.formatting.black,
+          -- null_ls.builtins.formatting.clang_format,
           null_ls.builtins.formatting.stylua,
-          null_ls.builtins.diagnostics.eslint,
-          null_ls.builtins.completion.spell,
+          -- null_ls.builtins.diagnostics.eslint,
+          -- null_ls.builtins.completion.spell,
         },
         on_attach = function(client, bufnr)
           if client.supports_method("textDocument/formatting") then
@@ -242,39 +208,61 @@ require("lazy").setup({
 
   -- Useful plugin to show you pending keybinds.
   { "folke/which-key.nvim",          opts = {} },
+
+  -- gitsigns
   {
-    -- Adds git releated signs to the gutter, as well as utilities for managing changes
     "lewis6991/gitsigns.nvim",
-    opts = {
-      -- See `:help gitsigns.txt`
-      signs = {
-        add = { text = "+" },
-        change = { text = "~" },
-        delete = { text = "_" },
-        topdelete = { text = "‾" },
-        changedelete = { text = "~" },
-      },
-      on_attach = function(bufnr)
-        vim.keymap.set(
-          "n",
-          "<leader>gp",
-          require("gitsigns").prev_hunk,
-          { buffer = bufnr, desc = "[G]o to [P]revious Hunk" }
-        )
-        vim.keymap.set(
-          "n",
-          "<leader>gn",
-          require("gitsigns").next_hunk,
-          { buffer = bufnr, desc = "[G]o to [N]ext Hunk" }
-        )
-        vim.keymap.set(
-          "n",
-          "<leader>ph",
-          require("gitsigns").preview_hunk,
-          { buffer = bufnr, desc = "[P]review [H]unk" }
-        )
-      end,
-    },
+    event = "BufRead",
+    config = function()
+      require("gitsigns").setup({
+        current_line_blame = true,  -- 当前行显示 blame
+        current_line_blame_opts = {
+          virt_text_pos = "right_align", -- 对齐方式
+          delay = 500,              -- 延迟显示（毫秒）
+        },
+      })
+
+      -- 快捷键
+      vim.keymap.set("n", "<leader>gb", "<cmd>Gitsigns toggle_current_line_blame<CR>")
+    end,
+  },
+
+  -- EasyMotion
+  {
+    "easymotion/vim-easymotion",
+    config = function()
+      -- 禁用默认映射
+      vim.g.EasyMotion_do_mapping = 0
+
+      -- 智能大小写
+      vim.g.EasyMotion_smartcase = 1
+
+      -- 高亮匹配
+      vim.g.EasyMotion_highlight_phrases = 1
+
+      -- 键位映射
+      local map = vim.keymap.set
+      local opts = { silent = true, noremap = true }
+
+      -- 触发前缀（默认 \，这里改为 <Leader>）
+      -- map('n', '<Leader>', '<Plug>(easymotion-prefix)', opts)
+
+      -- 常用操作
+      -- map('n', '<Leader>fw', '<Plug>(easymotion-bd-w)', opts)      -- 单词跳转
+      -- map('n', '<Leader>fl', '<Plug>(easymotion-bd-jk)', opts)     -- 行级跳转
+      -- map('n', '<Leader>fs', '<Plug>(easymotion-sn)', opts)        -- 搜索跳转
+      map("n", "f", "<Plug>(easymotion-overwin-f)", opts) -- 全屏搜索
+    end,
+  },
+
+  -- lsp_lines
+  {
+    "https://git.sr.ht/~whynothugo/lsp_lines.nvim",
+    config = function()
+      require("lsp_lines").setup()
+      -- 禁用默认的 LSP 行尾虚拟文本
+      vim.diagnostic.config({ virtual_text = false })
+    end,
   },
 
   --  {
@@ -293,21 +281,10 @@ require("lazy").setup({
     opts = {
       options = {
         icons_enabled = false,
-        theme = "everforest",
+        -- theme = "everforest",
         component_separators = "|",
         section_separators = "",
       },
-    },
-  },
-
-  {
-    -- Add indentation guides even on blank lines
-    "lukas-reineke/indent-blankline.nvim",
-    -- Enable `lukas-reineke/indent-blankline.nvim`
-    -- See `:help indent_blankline.txt`
-    opts = {
-      char = "┊",
-      show_trailing_blankline_indent = false,
     },
   },
 
@@ -339,28 +316,99 @@ require("lazy").setup({
     build = ":TSUpdate",
   },
 
-  -- NOTE: Next Step on Your Neovim Journey: Add/Configure additional "plugins" for kickstart
-  --       These are some example plugins that I've included in the kickstart repository.
-  --       Uncomment any of the lines below to enable them.
-  -- require 'kickstart.plugins.autoformat',
-  -- require 'kickstart.plugins.debug',
+  -- ToggleTerm.nvim
+  {
+    "akinsho/toggleterm.nvim",
+    config = function()
+      require("toggleterm").setup({
+        direction = "float", -- 浮动窗口
+        float_opts = {
+          border = "curved", -- 圆角边框
+        },
+      })
 
-  -- NOTE: The import below automatically adds your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
-  --    You can use this folder to prevent any conflicts with this init.lua if you're interested in keeping
-  --    up-to-date with whatever is in the kickstart repo.
-  --
-  --    For additional information see: https://github.com/folke/lazy.nvim#-structuring-your-plugins
-  -- { import = 'custom.plugins' },
-}, {})
+      -- 快捷键映射
+      vim.keymap.set("n", "<leader>tt", "<cmd>ToggleTerm<CR>")
+    end,
+  },
+
+  -- AutoPairs
+  {
+    "windwp/nvim-autopairs",
+    event = "InsertEnter",
+    config = function()
+      require("nvim-autopairs").setup({
+        disable_filetype = { "TelescopePrompt", "neo-tree" }, -- 禁用场景
+        check_ts = true,                                  -- 集成 treesitter
+        fast_wrap = {                                     -- 快速换行
+          map = "<M-e>",                                  -- 快捷键触发换行
+          chars = { "{", "[", "(", '"', "'" },
+        },
+      })
+
+      -- 与 cmp 集成
+      local cmp_autopairs = require("nvim-autopairs.completion.cmp")
+      require("cmp").event:on("confirm_done", cmp_autopairs.on_confirm_done())
+    end,
+  },
+  -- Split
+  {
+    "mrjones2014/smart-splits.nvim",
+    config = function()
+      require("smart-splits").setup({
+        -- 支持鼠标拖动调整窗口大小
+        resize_mode = {
+          hooks = {
+            on_enter = function()
+              vim.notify("Entering resize mode")
+            end,
+          },
+        },
+      })
+
+      -- 更智能的窗口切换（支持多显示器）
+      vim.keymap.set("n", "<C-h>", require("smart-splits").move_cursor_left)
+      vim.keymap.set("n", "<C-j>", require("smart-splits").move_cursor_down)
+      vim.keymap.set("n", "<C-k>", require("smart-splits").move_cursor_up)
+      vim.keymap.set("n", "<C-l>", require("smart-splits").move_cursor_right)
+    end,
+  },
+})
+-- NOTE: Next Step on Your Neovim Journey: Add/Configure additional "plugins" for kickstart
+--       These are some example plugins that I've included in the kickstart repository.
+--       Uncomment any of the lines below to enable them.
+-- require 'kickstart.plugins.autoformat',
+-- require 'kickstart.plugins.debug',
+
+-- NOTE: The import below automatically adds your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
+--    You can use this folder to prevent any conflicts with this init.lua if you're interested in keeping
+--    up-to-date with whatever is in the kickstart repo.
+--
+--    For additional information see: https://github.com/folke/lazy.nvim#-structuring-your-plugins
+-- { import = 'custom.plugins' },
 
 local format_sync_grp = vim.api.nvim_create_augroup("GoFormat", {})
 vim.api.nvim_create_autocmd("BufWritePre", {
   pattern = "*.go",
   callback = function()
-    require('go.format').gofmt()
+    require("go.format").gofmt()
   end,
   group = format_sync_grp,
 })
+
+-- LSP Hover Settings
+-- 在 lua/config/lsp.lua 中添加
+vim.api.nvim_create_autocmd("CursorHold", {
+  pattern = "*",
+  callback = function()
+    -- 自动显示悬浮提示（延迟 500ms）
+    vim.diagnostic.open_float(nil, { focusable = false })
+  end,
+})
+
+-- 手动触发悬浮提示的快捷键
+vim.keymap.set("n", "<leader>k", vim.lsp.buf.hover, { desc = "显示定义文档" })
+
 -- [[ Setting options ]]
 -- See `:help vim.o`
 -- NOTE: You can change these options as you wish!
@@ -427,9 +475,9 @@ require("cmake-tools").setup({
     },
   },
   cmake_notifications = {
-    enabled = true,                                               -- show cmake execution progress in nvim-notify
+    enabled = true, -- show cmake execution progress in nvim-notify
     spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }, -- icons used for progress display
-    refresh_rate_ms = 100,                                        -- how often to iterate icons
+    refresh_rate_ms = 100, -- how often to iterate icons
   },
 })
 require("nvim-web-devicons").setup({
@@ -478,8 +526,46 @@ require("nvim-web-devicons").setup({
 -- Set highlight on search
 vim.o.hlsearch = false
 
+-- Highlight cursor line
+vim.opt.cursorline = true
+vim.opt.termguicolors = true
+
+-- 基础下划线配置
+vim.api.nvim_set_hl(0, "CursorLine", {
+  underline = true,
+  sp = "#00FF00", -- 亮绿色下划线
+  bg = "NONE",   -- 无背景色
+})
+
+-- 行号区域样式
+vim.api.nvim_set_hl(0, "CursorLineNr", {
+  fg = "#FFA500", -- 橙色文字
+  bold = true,
+})
+
+-- Cursor color
+vim.opt.guicursor = {
+  "n:block-Cursor/lCursor-blinkwait300", -- 普通模式
+  "i:ver25-iCursor/blinkwait100",       -- 插入模式
+  "v:block-vCursor/beam",               -- 可视模式
+  "r:hor20-rCursor/rotate",             -- 替换模式
+}
+
+vim.api.nvim_set_hl(0, "Cursor", {
+  fg = "#FFFFFF",
+  bg = "#BF616A", -- 红色系
+  bold = true,
+})
+
+vim.api.nvim_set_hl(0, "iCursor", {
+  fg = "#2E3440",
+  bg = "#88C0D0", -- 蓝色系
+  underline = true,
+})
+
 -- Make line numbers default
-vim.wo.number = true
+vim.opt.relativenumber = true
+vim.wo.relativenumber = true
 
 -- Enable mouse mode
 vim.o.mouse = "a"
@@ -488,6 +574,17 @@ vim.o.mouse = "a"
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
 vim.o.clipboard = "unnamedplus"
+vim.g.clipboard = {
+  name = "OSC 52",
+  copy = {
+    ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+    ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+  },
+  paste = {
+    ["+"] = require("vim.ui.clipboard.osc52").paste("+"),
+    ["*"] = require("vim.ui.clipboard.osc52").paste("*"),
+  },
+}
 
 -- Enable break indent
 vim.o.breakindent = true
@@ -683,6 +780,15 @@ local on_attach = function(_, bufnr)
   vim.api.nvim_buf_create_user_command(bufnr, "Format", function(_)
     vim.lsp.buf.format()
   end, { desc = "Format current buffer with LSP" })
+
+  -- 保存时自动整理 imports
+  vim.api.nvim_create_autocmd("BufWritePre", {
+    pattern = "*.go",
+    callback = function()
+      vim.lsp.buf.format({ async = false })
+      vim.cmd("silent! GoImport")
+    end,
+  })
 end
 
 -- Enable the following language servers
@@ -691,9 +797,23 @@ end
 --  Add any additional override configuration in the following tables. They will be passed to
 --  the `settings` field of the server config. You must look up that documentation yourself.
 local servers = {
-  clangd = {},
-  -- gopls = {},
-  pyright = {},
+  -- clangd = {},
+  gopls = {
+    analyses = {
+      unusedparams = true,   -- 提示未使用参数
+      fieldalignment = true, -- 结构体字段对齐检查
+    },
+    staticcheck = true,      -- 启用静态检查
+    completeUnimported = true, -- 补全未导入的包
+    usePlaceholders = true,  -- 使用占位符补全
+    hints = {
+      assignVariableTypes = true,
+      compositeLiteralFields = true,
+      constantValues = true,
+      functionTypeParameters = true,
+    },
+  },
+  -- pyright = {},
   -- rust_analyzer = {},
   -- tsserver = {},
 
